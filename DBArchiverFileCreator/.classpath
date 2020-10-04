@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/5"/>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="C:/CODE/commons-lang3-3.3.2.jar"/>
+	<classpathentry kind="lib" path="C:/CODE/opencsv-3.3.jar"/>
+	<classpathentry kind="lib" path="C:/CODE/commons-csv-1.5.jar" sourcepath="C:/Users/merlot9/.m2/repository/org/apache/commons/commons-csv/1.5/commons-csv-1.5-sources.jar"/>
+	<classpathentry kind="lib" path="C:/CODE/commons-csv-1.5-sources.jar"/>
+	<classpathentry kind="lib" path="C:/CODE/commons-io-2.6.jar"/>
+	<classpathentry kind="lib" path="C:/CODE/commons-io-2.6-javadoc.jar"/>
+	<classpathentry kind="lib" path="C:/CODE/commons-io-2.6-sources.jar"/>
+	<classpathentry kind="lib" path="C:/CODE/lombok.jar"/>
+	<classpathentry kind="lib" path="C:/CODE/poi-4.1.0.jar"/>
+	<classpathentry kind="lib" path="C:/CODE/poi-ooxml-4.1.0.jar"/>
+	<classpathentry kind="lib" path="C:/CODE/poi-ooxml-schemas-4.1.0.jar"/>
+	<classpathentry kind="lib" path="C:/CODE/xmlbeans-3.1.0.jar"/>
+	<classpathentry kind="lib" path="C:/CODE/commons-collections4-4.3.jar"/>
+	<classpathentry kind="lib" path="C:/CODE/commons-compress-1.18.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
+	<classpathentry kind="lib" path="C:/CODE"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
