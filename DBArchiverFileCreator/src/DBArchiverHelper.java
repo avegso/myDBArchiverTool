@@ -13,6 +13,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
@@ -31,12 +32,17 @@ import javax.swing.SwingConstants;
 
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.util.CellReference;
 import org.apache.poi.sl.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellRange;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.util.StringUtil;
+import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import javax.swing.JRadioButton;
@@ -87,11 +93,11 @@ class DBArchiverHelper {
 	private BufferedReader area_2;
 	private JTextField textAllSheets;
 	private JTextField textSeqNo;
-	private String shortName="";
-	private String docType="";
-	private String sheetName="";
+	public String txtshortName="";
+	public String txtDocType="";
+	public String txtSheetName="";
 	public String loaded="";
-	public String xlsDoctype = "";
+	public String txtUniqId = "";
 	/**
      * Launch the application.
      */
@@ -439,9 +445,76 @@ class DBArchiverHelper {
         frame.getContentPane().add(textSeqNo);
 
     }
+    
+    private void createCSV(org.apache.poi.ss.usermodel.Sheet sheet) {
+    	//JOptionPane.showMessageDialog(null,  sheet.getSheetName());
+    	System.out.print(sheet.getSheetName());
+    	String s3 = new String(textRowNr.getText());
+    	 StringBuilder csv_temp = new StringBuilder();
+    	int rownr = Integer.parseInt(s3);
+    	int colnr = Integer.parseInt(textColumnName.getText());
+    
+    	 Row row = null;
+         
+         String  str = "";
+          for (int i = rownr-1 ; i <  sheet.getLastRowNum() + 1; i++) {
+              row =  sheet.getRow(i);
 
-   // @SuppressWarnings("deprecation")
-	//@SuppressWarnings("deprecation")
+              if (!checkIfRowIsEmpty(row)) {
+
+                  String rowString = new String();
+                  for (int j = colnr-1; j < 12; j++) {
+
+                      if (row.getCell(j) == null) {
+                          rowString = rowString + ",";
+                      } else {
+                          rowString = rowString + row.getCell(j) + ",";
+                      }
+                  }
+                  str = str + rowString.substring(0, rowString.length() - 1) + lineBreak;
+              }
+          }
+          csv_temp.append(str);
+
+          BufferedWriter csvwriter = null;
+
+          try {
+             // csvwriter = new BufferedWriter(new FileWriter(textSaveFileFolder.getText() + "\\" + textDocName.getText() + ".csv"));
+          	csvwriter = new BufferedWriter(new FileWriter(textSaveFileFolder.getText() + "\\" + txtSheetName + ".csv"));
+          	csvwriter.write(csvHeader);
+          	csvwriter.write(lineBreak);
+          	csvwriter.write(csv_temp.toString());
+          	csvwriter.close(); 
+          	csv_temp.setLength(0);
+
+          } catch (IOException e) {
+              // TODO Auto-generated catch block
+             JOptionPane.showMessageDialog(null, e.getMessage());
+             return;           
+          } finally {
+          	if (txtSheetName != null) {
+          		try {
+          			csvwriter.close();
+  				} catch (IOException e) {
+  					// TODO Auto-generated catch block
+  					e.printStackTrace();
+  				}
+          	}
+          	}
+          try {
+			createXML();
+			createJSON();                
+	        createXSLT();               
+	        createGroup();               
+	        createBatchFiles();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}                           
+         
+    }
+
+   // @SuppressWarnings("deprecation")	
 	private boolean checkIfRowIsEmpty(Row row) {
         if (row == null) {
             return true;
@@ -457,10 +530,23 @@ class DBArchiverHelper {
         }
         return true;
     }
-
-    private void createCSVfromXSLTTemplate() throws IOException {
-    	String s3 = new String(textRowNr.getText());
-    	String xlsDoctype = "";
+	
+	 private void grabMergedFieldValues(org.apache.poi.ss.usermodel.Sheet sheet) throws IOException {
+		 CellRangeAddress region = null;
+	        for (int i = 0;   i < sheet.getNumMergedRegions();  i++)
+	        	 region = sheet.getMergedRegion(i);  //
+	        	 int colIndex = region.getFirstColumn();  //First column position of merge area
+	        	 int rowNum = region.getFirstRow();  //position of first line of merge area   
+	        	 txtSheetName = sheet.getSheetName().trim();
+	        	 txtshortName = sheet.getRow(3).getCell(3).getStringCellValue().trim();
+	        	 txtUniqId =  sheet.getRow(7).getCell(3).getStringCellValue().trim();
+	        	 txtDocType =  sheet.getRow(8).getCell(3).getStringCellValue().trim();     
+	        	 createCSV(sheet);
+	 }
+	
+	 private void createCSVfromXSLTTemplate() throws IOException {
+    	String s3 = new String(textRowNr.getText());    	
+    	
     	if (StringUtils.isEmpty(s3))
     	{
     		 JOptionPane.showMessageDialog(null, "No fields are populated");
@@ -470,57 +556,38 @@ class DBArchiverHelper {
     	int colnr = Integer.parseInt(textColumnName.getText());
 
         StringBuilder csv_temp = new StringBuilder();
-        new DataFormatter();
+      
         String excelFilePath = textexcelfilepath.getText();
         FileInputStream inputStream = new FileInputStream(new File(excelFilePath));
+        
+        
         wb = new XSSFWorkbook(inputStream);
-        wb.sheetIterator().forEachRemaining(sheet -> {
-        	
-        });
-        // int sheetindex = Integer.parseInt(textexcelsheetnr.getText());
+        if (!textAllSheets.getText().equals("Y"))
+        { 
         XSSFSheet sheet = wb.getSheet(textexcelsheetnr.getText());
-        Row row = null;
-        String str = new String();
-        for (int i = rownr-1 ; i < sheet.getLastRowNum() + 1; i++) {
-            row = sheet.getRow(i);
-
-            if (!checkIfRowIsEmpty(row)) {
-
-                String rowString = new String();
-                for (int j = colnr-1; j < 12; j++) {
-
-                    if (row.getCell(j) == null) {
-                        rowString = rowString + ",";
-                    } else {
-                        rowString = rowString + row.getCell(j) + ",";
-                    }
-
-                }
-
-                str = str + rowString.substring(0, rowString.length() - 1) + lineBreak;
-            }
-        }
-        csv_temp.append(str);
-        // cell = sheet.getRow(29).getCell(org.apache.poi.ss.util.CellReference.convertColStringToIndex("B"));
-        BufferedWriter csvwriter = null;
-        // BufferedWriter XML = null;
-        // BufferedWriter XSLT = null;
+        JOptionPane.showMessageDialog(null, sheet.getSheetName());
         try {
-            csvwriter = new BufferedWriter(new FileWriter(textSaveFileFolder.getText() + "\\" + textDocName.getText() + ".csv"));
-            csvwriter.write(csvHeader);
-            csvwriter.write(lineBreak);
-            csvwriter.write(csv_temp.toString());
-            csvwriter.close();
-
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-           JOptionPane.showMessageDialog(null, e.getMessage());
-           return;
+			grabMergedFieldValues(sheet);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}      
+        } else  { 
+        wb.sheetIterator().forEachRemaining(sheet -> {  
+        try {
+			grabMergedFieldValues(sheet);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
+        }); 
         }
-
     }
 
-    private void createButtons() {
+
+
+	private void createButtons() {
         // TODO Auto-generated method stub
         JButton btnSavetotext = new JButton("Save Text Fields");
         btnSavetotext.setBounds(24, 9, 152, 23);
@@ -542,6 +609,7 @@ class DBArchiverHelper {
         frame.getContentPane().add(btnReadPrevious);
         btnReadPrevious.addActionListener(arg1 -> {
             try {
+            	loaded = "notPressed";
                 readPreviouslySaved();
                 readXMTemplateFile();
                 readXSLTemplateFile();
@@ -553,11 +621,7 @@ class DBArchiverHelper {
             }
 
         });
-
-        JButton btnExecute = new JButton("Execute");
-        btnExecute.setBounds(665, 538, 157, 23);
-        frame.getContentPane().add(btnExecute);
-
+        
         JButton btnHelp = new JButton("Help");
         btnHelp.addActionListener(e -> {
 
@@ -597,45 +661,19 @@ class DBArchiverHelper {
         	
         });
 
-
-        
+        JButton btnExecute = new JButton("Execute");
+        btnExecute.setBounds(665, 538, 157, 23);
+        frame.getContentPane().add(btnExecute);        
         btnExecute.addActionListener(arg3 -> {
 
-            try {
-                createCSVfromXSLTTemplate();
+            try {            	
+                createCSVfromXSLTTemplate();               
+                JOptionPane.showMessageDialog(frame, "Execution completed.");
             } catch (IOException e3) {
                 // TODO Auto-generated catch block
             	JOptionPane.showMessageDialog(null, e3.getMessage());
-            }
-
-            try {
-                createXML();
-            } catch (IOException e2) {
-                // TODO Auto-generated catch block
-            	JOptionPane.showMessageDialog(null, e2.getMessage());
-            }
-            try {
-                createJSON();
-            } catch (IOException e1) {
-                // TODO Auto-generated catch block
-               JOptionPane.showMessageDialog(null, e1.getMessage());
-               
-            }
-            try {
-                createXSLT();
-            } catch (IOException e1) {
-                // TODO Auto-generated catch block
-               JOptionPane.showMessageDialog(null, e1.getMessage());
-               
-            }
-            try {
-                createGroup();
-            } catch (IOException e1) {
-                // TODO Auto-generated catch block
-               JOptionPane.showMessageDialog(null, e1.getMessage());
-               
-            }
-            createBatchFiles();
+            	}      
+            
 
         });
     }
@@ -646,9 +684,9 @@ class DBArchiverHelper {
         docName = textDocName.getText();
         BufferedWriter uploaderbatch = null;
         try {
-            uploaderbatch = new BufferedWriter(new FileWriter(textSaveFileFolder.getText() + "\\" + docName + ".bat"));
+            uploaderbatch = new BufferedWriter(new FileWriter(textSaveFileFolder.getText() + "\\" + txtSheetName + ".bat"));
             uploaderbatch
-                .write(textJARFileLocation.getText() + "\\dbarchiver.bat -e " + textSaveFileFolder.getText() + "\\" + docName + "_config.xml");
+                .write(textJARFileLocation.getText() + "\\dbarchiver.bat -e " + textSaveFileFolder.getText() + "\\" +  txtSheetName  + "_config.xml");
             uploaderbatch.close();
         } catch (IOException e) {
             // TODO Auto-generated catch block
@@ -657,19 +695,16 @@ class DBArchiverHelper {
         }
         BufferedWriter xsltbatch = null;
         try {
-            xsltbatch = new BufferedWriter(new FileWriter(textSaveFileFolder.getText() + "\\" + docName + "_xslt.bat"));
-            xsltbatch.write(textJARFileLocation.getText() + "\\dbarchiver.bat -s " + textSaveFileFolder.getText() + "\\" + docName + "_config.xml "
-                + docName + ".xslt " + docName + ".xslt");
+            xsltbatch = new BufferedWriter(new FileWriter(textSaveFileFolder.getText() + "\\" + txtSheetName  + "_xslt.bat"));
+            xsltbatch.write(textJARFileLocation.getText() + "\\dbarchiver.bat -s " + textSaveFileFolder.getText() + "\\" +  txtSheetName  + "_config.xml "
+                + txtSheetName + ".xslt " + txtSheetName + ".xslt");
             xsltbatch.close();
         } catch (IOException e) {
             // TODO Auto-generated catch block
            JOptionPane.showMessageDialog(null, e.getMessage());
           
         }
-        // Done creating XML Uploader Bathfile
-
-        JOptionPane.showMessageDialog(frame, "Execution completed.");
-       
+        // Done creating XML Uploader Bathfile     
 
     }
 
@@ -691,7 +726,7 @@ class DBArchiverHelper {
 
     //@SuppressWarnings("resource")
     private void createGroup() throws IOException {
-        Path path = Paths.get(textSaveFileFolder.getText() + "\\" + textDocTypeFilename.getText());
+        Path path = Paths.get(textSaveFileFolder.getText() + "\\" +  txtSheetName +".csv");
         StringBuilder group = new StringBuilder();
 
         group.append(",");
@@ -763,7 +798,7 @@ class DBArchiverHelper {
         // BufferedWriter XML = null;
         // BufferedWriter XSLT = null;
         try {
-            groupwriter = new BufferedWriter(new FileWriter(textSaveFileFolder.getText() + "\\" + textDocName.getText() + "group.txt"));
+            groupwriter = new BufferedWriter(new FileWriter(textSaveFileFolder.getText() + "\\" +  txtSheetName  + "_group.txt"));
             groupwriter.write(group.toString());
             groupwriter.close();
 
@@ -826,7 +861,7 @@ class DBArchiverHelper {
 
     //@SuppressWarnings("resource")
     private void createXSLT() throws IOException {
-        Path path = Paths.get(textSaveFileFolder.getText() + "\\" + textDocTypeFilename.getText());
+        Path path = Paths.get(textSaveFileFolder.getText() + "\\" +  txtSheetName +".csv");
         parser = new DocTypeCsvParser(path);
         parser.getHeaderMap();
 
@@ -859,7 +894,7 @@ class DBArchiverHelper {
 
         txt = textArea_1.getText();
         // System.out.println(txt);
-        String filetowork = textSaveFileFolder.getText() + "\\" + textDocName.getText() + ".xslt";
+        String filetowork = textSaveFileFolder.getText() + "\\" + txtSheetName + ".xslt";
         // Delete existing file
         File filetodelete = new File(filetowork);
         filetodelete.delete();
@@ -894,7 +929,7 @@ class DBArchiverHelper {
 
     @SuppressWarnings("resource")
     private void createJSON() throws IOException {
-        Path path = Paths.get(textSaveFileFolder.getText() + "\\" + textDocTypeFilename.getText());
+        Path path = Paths.get(textSaveFileFolder.getText() + "\\" +  txtSheetName +".csv");
 
         DocTypeCsvParser parser = new DocTypeCsvParser(path);
         parser.getHeaderMap();
@@ -1020,7 +1055,7 @@ class DBArchiverHelper {
 
         BufferedWriter jsonwriter = null;
         try {
-            jsonwriter = new BufferedWriter(new FileWriter(textSaveFileFolder.getText() + "\\" + textDocName.getText() + ".json"));
+            jsonwriter = new BufferedWriter(new FileWriter(textSaveFileFolder.getText() + "\\" +  txtSheetName  + ".json"));
             jsonwriter.write(json.toString());
             jsonwriter.close();
 
@@ -1255,7 +1290,8 @@ class DBArchiverHelper {
     }
 
     private void createXML() throws IOException {
-        Path path = Paths.get(textSaveFileFolder.getText() + "\\" + textDocTypeFilename.getText());
+    	Path uploaderpath = Paths.get(textSaveFileFolder.getText());
+        Path path = Paths.get(textSaveFileFolder.getText() + "\\" + txtSheetName +".csv");
         parser2 = new DocTypeCsvParser(path);
         parser2.getHeaderMap();
 
@@ -1265,9 +1301,9 @@ class DBArchiverHelper {
         txt = textArea_0.getText();
         textArea_0.setText(txt.replaceAll(searchKey[1], textCSVFile.getText()));
         txt = textArea_0.getText();
-        textArea_0.setText(txt.replaceAll(searchKey[2], textDocName.getText() + ".xslt"));
+        textArea_0.setText(txt.replaceAll(searchKey[2], txtDocType + ".xslt"));
         txt = textArea_0.getText();
-        textArea_0.setText(txt.replaceAll(searchKey[3], textJsonPath.getText()));
+        textArea_0.setText(txt.replaceAll(searchKey[3], uploaderpath + "/" + txtDocType + ".json"));
         txt = textArea_0.getText();
         textArea_0.setText(txt.replaceAll(searchKey[4], textDBURL.getText()));
         txt = textArea_0.getText();
@@ -1289,7 +1325,7 @@ class DBArchiverHelper {
         {
             xml.append("\t" + "<sequencenr>{sequencenr}</sequencenr>");
              xml.append(lineBreak);
-             xml.append("\t" + "<id>" + textDocType.getText() + "-{" + textXMLKeyID.getText() + "}-{sequencenr}</id>");
+             xml.append("\t" + "<id>" + txtDocType + "-{" + txtUniqId + "}-{sequencenr}</id>");
             xml.append(lineBreak);
             String expyear;
             if (textExpirationYear.getText().equals("")) {
@@ -1302,9 +1338,9 @@ class DBArchiverHelper {
         }      		
 
         
-        xml.append("\t" + "<doctype>" + textDocType.getText() + "</doctype>");
+        xml.append("\t" + "<doctype>" + txtDocType + "</doctype>");
         xml.append(lineBreak);
-        xml.append("\t" + "<source>" + textSource.getText() + "</source>");
+        xml.append("\t" + "<source>" + txtshortName + "</source>");
         xml.append(lineBreak);
 
         txt = textArea_0.getText();
@@ -1327,7 +1363,7 @@ class DBArchiverHelper {
 
         txt = textArea_0.getText();
 
-        String filetowork = textSaveFileFolder.getText() + "\\" + textDocName.getText() + "_config.xml";
+        String filetowork = textSaveFileFolder.getText() + "\\" +  txtSheetName  + "_config.xml";
         // Delete existing file
         File filetodelete = new File(filetowork);
         filetodelete.delete();
