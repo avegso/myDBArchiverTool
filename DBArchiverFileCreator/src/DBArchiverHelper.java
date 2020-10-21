@@ -70,7 +70,7 @@ class DBArchiverHelper {
     private JTextField textXMLRootTag;
     private JTextField textJsonPath;
     private JTextField textDocName;
-    private JTextField textDocType;
+  // private JTextField textDocType;
     private JTextField textXMLKeyID;
     private JTextField textSource;
     private JTextField textSaveFileFolder;
@@ -93,8 +93,8 @@ class DBArchiverHelper {
 	private BufferedReader area_2;
 	private JTextField textAllSheets;
 	private JTextField textSeqNo;
-	public String txtshortName="";
-	public String txtDocType="";
+	public String txtShortName="";
+	private String txtXLSDocType="";
 	public String txtSheetName="";
 	public String loaded="";
 	public String txtUniqId = "";
@@ -302,11 +302,11 @@ class DBArchiverHelper {
         lblDocType.setBounds(411, 187, 133, 14);
         frame.getContentPane().add(lblDocType);
 
-        textDocType = new JTextField();
+       /* textDocType = new JTextField();
         textDocType.setColumns(10);
         textDocType.setBounds(553, 181, 379, 20);
         frame.getContentPane().add(textDocType);
-
+*/
         JLabel lblXmlInitId = new JLabel("XML Init ID Key:");
         lblXmlInitId.setForeground(new Color(153, 0, 0));
         lblXmlInitId.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -538,9 +538,10 @@ class DBArchiverHelper {
 	        	 int colIndex = region.getFirstColumn();  //First column position of merge area
 	        	 int rowNum = region.getFirstRow();  //position of first line of merge area   
 	        	 txtSheetName = sheet.getSheetName().trim();
-	        	 txtshortName = sheet.getRow(3).getCell(3).getStringCellValue().trim();
-	        	 txtUniqId =  sheet.getRow(7).getCell(3).getStringCellValue().trim();
-	        	 txtDocType =  sheet.getRow(8).getCell(3).getStringCellValue().trim();     
+	        	 txtShortName = sheet.getRow(3).getCell(4).getStringCellValue().trim();	        	 
+	        	txtUniqId =  sheet.getRow(7).getCell(4).getStringCellValue().trim();
+	        	 txtXLSDocType =  sheet.getRow(8).getCell(4).getStringCellValue().trim(); 
+	        	JOptionPane.showMessageDialog(null, txtShortName +" "+ txtUniqId + " " + txtXLSDocType);
 	        	 createCSV(sheet);
 	 }
 	
@@ -565,7 +566,7 @@ class DBArchiverHelper {
         if (!textAllSheets.getText().equals("Y"))
         { 
         XSSFSheet sheet = wb.getSheet(textexcelsheetnr.getText());
-        JOptionPane.showMessageDialog(null, sheet.getSheetName());
+       
         try {
 			grabMergedFieldValues(sheet);
 		} catch (IOException e) {
@@ -734,7 +735,7 @@ class DBArchiverHelper {
         group.append("{");
         group.append(lineBreak);
         group.append("\"name\": ");
-        group.append('"' + textDocType.getText() + '"' + ",");
+        group.append('"' + txtXLSDocType + '"' + ",");
         group.append(lineBreak);
         group.append("\"hitFields\": [");
         group.append(lineBreak);
@@ -890,8 +891,9 @@ class DBArchiverHelper {
         String txt = textArea_1.getText();
         textArea_1.setText(txt.replaceAll(searchKey[10], xsltres.toString()));
         txt = textArea_1.getText();
-        textArea_1.setText(txt.replaceAll(searchKey[9], textDocType.getText()));
-
+        //textArea_1.setText(txt.replaceAll(searchKey[9], textDocType.getText())); txtXLSDocType
+        textArea_1.setText(txt.replaceAll(searchKey[9], txtXLSDocType));
+        
         txt = textArea_1.getText();
         // System.out.println(txt);
         String filetowork = textSaveFileFolder.getText() + "\\" + txtSheetName + ".xslt";
@@ -1131,7 +1133,7 @@ class DBArchiverHelper {
             } else if (i == 11) {
             	 textDocName.setText(str.toString());       
             } else if (i == 12) {
-            	textDocType.setText(str.toString());     
+            	//textDocType.setText(str.toString());     
             } else if (i == 13) {
             	 textXMLKeyID.setText(str.toString());     
             } else if (i == 14) {
@@ -1190,7 +1192,7 @@ class DBArchiverHelper {
             writer.newLine();
             writer.write(textDocName.getText());
             writer.newLine();
-            writer.write(textDocType.getText());
+           writer.write(txtXLSDocType);
             writer.newLine();
             writer.write(textXMLKeyID.getText());
             writer.newLine();
@@ -1239,7 +1241,7 @@ class DBArchiverHelper {
             backup.newLine();
             backup.write(textDocName.getText());
             backup.newLine();
-            backup.write(textDocType.getText());
+            backup.write(txtXLSDocType);
             backup.newLine();
             backup.write(textXMLKeyID.getText());
             backup.newLine();
@@ -1294,16 +1296,18 @@ class DBArchiverHelper {
         Path path = Paths.get(textSaveFileFolder.getText() + "\\" + txtSheetName +".csv");
         parser2 = new DocTypeCsvParser(path);
         parser2.getHeaderMap();
-
+        
+        readXMTemplateFile();
+        
         String txt = textArea_0.getText();
-
+       
         textArea_0.setText(txt.replaceAll(searchKey[0], textIntranetID.getText()));
         txt = textArea_0.getText();
         textArea_0.setText(txt.replaceAll(searchKey[1], textCSVFile.getText()));
         txt = textArea_0.getText();
-        textArea_0.setText(txt.replaceAll(searchKey[2], txtDocType + ".xslt"));
+        textArea_0.setText(txt.replaceAll(searchKey[2], txtXLSDocType + ".xslt"));
         txt = textArea_0.getText();
-        textArea_0.setText(txt.replaceAll(searchKey[3], uploaderpath + "/" + txtDocType + ".json"));
+        textArea_0.setText(txt.replaceAll(searchKey[3], uploaderpath + "/" + txtXLSDocType + ".json"));
         txt = textArea_0.getText();
         textArea_0.setText(txt.replaceAll(searchKey[4], textDBURL.getText()));
         txt = textArea_0.getText();
@@ -1325,24 +1329,26 @@ class DBArchiverHelper {
         {
             xml.append("\t" + "<sequencenr>{sequencenr}</sequencenr>");
              xml.append(lineBreak);
-             xml.append("\t" + "<id>" + txtDocType + "-{" + txtUniqId + "}-{sequencenr}</id>");
+             xml.append("\t" + "<id>" + txtXLSDocType + "-{" + txtUniqId + "}-{sequencenr}</id>");
             xml.append(lineBreak);
             String expyear;
             if (textExpirationYear.getText().equals("")) {
                 expyear = "{expirationyear}";
             } else {
                 expyear = textExpirationYear.getText();
-            }
+            }         
+           
             xml.append("\t" + "<expirationyear>" + expyear + "</expirationyear>");
             xml.append(lineBreak);
-        }      		
+        } else  {     		
 
-        
-        xml.append("\t" + "<doctype>" + txtDocType + "</doctype>");
+        xml.append("\t" + "<id>" + txtXLSDocType + "-{" + txtUniqId + "}</id>");
         xml.append(lineBreak);
-        xml.append("\t" + "<source>" + txtshortName + "</source>");
+        xml.append("\t" + "<doctype>" + txtXLSDocType + "</doctype>");
         xml.append(lineBreak);
-
+        xml.append("\t" + "<source>" + txtShortName + "</source>");
+        xml.append(lineBreak);
+        }
         txt = textArea_0.getText();
 
         for (CSVRecord record : parser2) {
